@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+
+<launch>
+
+  <node name="kalman_filter" pkg="kalman_filter" type="kalman_filter_pose3D" respawn="true" launch-prefix="" output="screen">
+  </node>
+  
+</launch>
