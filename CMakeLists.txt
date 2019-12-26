@@ -8,6 +8,7 @@ find_package(catkin REQUIRED
   roscpp
   rospy
   std_msgs
+  tf
   message_generation)
 
 ## System dependencies are found with CMake's conventions
@@ -84,6 +85,7 @@ catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES signal_sub_pub
   CATKIN_DEPENDS #other_catkin_pkg
+  tf
   message_runtime  std_msgs
 #  DEPENDS system_lib
 )
