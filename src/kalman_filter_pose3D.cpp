@@ -4,6 +4,7 @@
 #include <fstream>
 #include "nav_msgs/Odometry.h"
 #include "geometry_msgs/PoseStamped.h"
+#include "geometry_msgs/TwistStamped.h"
 #include "sensor_msgs/Imu.h"
 #include <tf/transform_datatypes.h>
 
@@ -21,6 +22,7 @@ double dt = 1/freq;
 bool imu_update = false, pose_update = false;
 sensor_msgs::Imu imu_msg;
 geometry_msgs::TransformStamped pose_msg, kf_pose;
+geometry_msgs::TwistStamped kf_velocity;
 double roll, pitch, yaw;
 
 void imu_callback(const sensor_msgs::Imu &new_message)
@@ -44,7 +46,8 @@ int main(int argc, char **argv)
   
   ros::Subscriber subscribe_imu  = nh.subscribe("/crazyflie/imu",1,imu_callback);
   ros::Subscriber subscribe_pose = nh.subscribe("/crazyflie/pose",1,pose_callback);
-  ros::Publisher  publish_pose   = nh.advertise<geometry_msgs::TransformStamped>("crazyflie/kf_pose", 5);
+  ros::Publisher  publish_pose   = nh.advertise<geometry_msgs::TransformStamped>("kf_pose", 5);
+  ros::Publisher  publish_vel   = nh.advertise<geometry_msgs::TwistStamped>("velocity", 5);
 
   struct timeval tvstart, tvend;
   gettimeofday(&tvstart,NULL);
@@ -80,7 +83,8 @@ int main(int argc, char **argv)
   C.topRightCorner(n-m,n-m) = MatrixXd::Zero(n-m,n-m);
 
   R = 0.001*MatrixXd::Identity(n,n);
-  Q = 0.05*MatrixXd::Identity(m,m);
+  R.bottomRightCorner(n/2,n/2) = 0.07*MatrixXd::Identity(n/2,n/2);
+  Q = 0.001*MatrixXd::Identity(m,m);
 
   P = MatrixXd::Constant(n,n, 0.05);
 
@@ -92,7 +96,6 @@ int main(int argc, char **argv)
 
   while (ros::ok())
   {
-    pose_update = true;
     if(imu_update && pose_update){
       imu_update = false;
       // Get roll pitch yaw from imu
@@ -131,6 +134,12 @@ int main(int argc, char **argv)
       kf_pose.transform.translation.z = filtered_pose(2);
       kf_pose.transform.rotation = pose_msg.transform.rotation;
       publish_pose.publish(kf_pose);
+      // Publish velocity
+      kf_velocity.header = kf_pose.header;
+      kf_velocity.twist.linear.x = filtered_pose(3);
+      kf_velocity.twist.linear.y = filtered_pose(4);
+      kf_velocity.twist.linear.z = filtered_pose(5);
+      publish_vel.publish(kf_velocity);
     }
     
     
